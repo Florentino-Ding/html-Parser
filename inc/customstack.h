@@ -1,8 +1,0 @@
-//
-// Created by 丁麓然 on 10/15/23.
-//
-
-#ifndef HTML_PARSER_CUSTOMSTACK_H
-#define HTML_PARSER_CUSTOMSTACK_H
-
-#endif //HTML_PARSER_CUSTOMSTACK_H
