@@ -1,2 +1,6 @@
+/Users/dingluran/Projects/homeworks/数据结构 lab2/cmake-build-debug/CMakeFiles/html_parser.dir
 /Users/dingluran/Projects/homeworks/数据结构 lab2/cmake-build-debug/CMakeFiles/edit_cache.dir
 /Users/dingluran/Projects/homeworks/数据结构 lab2/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/dingluran/Projects/homeworks/数据结构 lab2/cmake-build-debug/src/parser/CMakeFiles/parser.dir
+/Users/dingluran/Projects/homeworks/数据结构 lab2/cmake-build-debug/src/parser/CMakeFiles/edit_cache.dir
+/Users/dingluran/Projects/homeworks/数据结构 lab2/cmake-build-debug/src/parser/CMakeFiles/rebuild_cache.dir
