@@ -39,7 +39,17 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/Users/dingluran/Projects/homeworks/数据结构 lab2/cmake-build-debug/src/parser/cmake_install.cmake")
+  include("/Users/dingluran/Projects/homeworks/数据结构 lab2/cmake-build-debug/src/html_parser/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/Users/dingluran/Projects/homeworks/数据结构 lab2/cmake-build-debug/src/interface/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/Users/dingluran/Projects/homeworks/数据结构 lab2/cmake-build-debug/src/xpath_parser/cmake_install.cmake")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)

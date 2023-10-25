@@ -10,65 +10,60 @@
 #include <stdexcept>
 
 namespace custom {
-    template<typename T>
-    class stack {
-    private:
-        struct _Node {
-            T data;
-            _Node *next;
+template <typename T> class stack {
+private:
+  struct _Node {
+    T data;
+    _Node *next;
 
-            _Node(const T &data) : data(data), next(nullptr) {}
+    _Node(const T &data) : data(data), next(nullptr) {}
 
-            _Node(const T &data, _Node *next) : data(data), next(next) {}
-        };
+    _Node(const T &data, _Node *next) : data(data), next(next) {}
+  };
 
-        _Node *_top;
-        size_t _size;
+  _Node *_top;
+  size_t _size;
 
-    public:
-        stack() : _top(nullptr), _size(0) {}
-        ~stack() {
-            while (not empty()) {
-                pop();
-            }
-        }
+public:
+  stack() : _top(nullptr), _size(0) {}
+  ~stack() {
+    while (not empty()) {
+      pop();
+    }
+  }
 
-        void push(const T &data) {
-            _Node *newNode;
-            try {
-                newNode = new _Node(data, _top);
-            } catch (std::bad_alloc &e) {
-                throw e;
-            }
-            _top = newNode;
-            _size++;
-        }
+  void push(const T &data) {
+    _Node *newNode;
+    try {
+      newNode = new _Node(data, _top);
+    } catch (std::bad_alloc &e) {
+      throw e;
+    }
+    _top = newNode;
+    _size++;
+  }
 
-        void pop(void) {
-            if (_size == 0) {
-                throw std::out_of_range("Stack underflow");
-            }
-            _Node *temp = _top;
-            _top = _top->next;
-            delete temp;
-            _size--;
-        }
+  void pop(void) {
+    if (_size == 0) {
+      throw std::out_of_range("Stack underflow");
+    }
+    _Node *temp = _top;
+    _top = _top->next;
+    delete temp;
+    _size--;
+  }
 
-        T top(void) {
-            if (_size == 0) {
-                throw std::out_of_range("Stack underflow");
-            }
-            return _top->data;
-        }
+  T top(void) const {
+    if (_size == 0) {
+      throw std::out_of_range("Stack underflow");
+    }
+    return _top->data;
+  }
 
-        size_t size(void) {
-            return _size;
-        }
+  size_t size(void) const { return _size; }
 
-        bool empty(void) {
-            return _size == 0;
-        }
-    };
+  bool empty(void) const { return _size == 0; }
+};
 } // namespace custom
 
-#endif //HTML_PARSER_CUSTOMSTACK_H
+#endif // HTML_PARSER_CUSTOMSTACK_H

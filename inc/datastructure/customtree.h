@@ -5,15 +5,14 @@
 #ifndef HTML_PARSER_CUSTOMTREE_H
 #define HTML_PARSER_CUSTOMTREE_H
 
-#include "customlist.h"
 #include <cstddef>
+#include <list>
 #include <new>
 #include <stdexcept>
 #include <string>
 
 namespace custom {
-using custom::list;
-using std::pair, std::string;
+using std::pair, std::string, std::list;
 
 template <typename T> class tree {
 private:
@@ -22,11 +21,13 @@ private:
     list<_TreeNode *> children;
     _TreeNode *parent;
 
+    _TreeNode() : parent(nullptr), data() {}
+
     _TreeNode(const T d, _TreeNode *p = nullptr) : data(d), parent(p) {}
 
-    _TreeNode(const _TreeNode &another_node, _TreeNode *p = nullptr)
-        : data(another_node.data), parent(p) {
-      for (auto &child : another_node.children) {
+    _TreeNode(const _TreeNode *another_node, _TreeNode *p = nullptr)
+        : data(another_node->data), parent(p) {
+      for (auto &child : another_node->children) {
         try {
           children.push_back(new _TreeNode(*child));
         } catch (std::bad_alloc &e) {
@@ -54,7 +55,7 @@ public:
 
   tree(const tree &another_tree) : _size(another_tree._size) {
     try {
-      _tree = new _TreeNode(*another_tree._tree);
+      _tree = new _TreeNode(another_tree._tree);
     } catch (std::bad_alloc &e) {
       throw std::runtime_error("Memory allocation failed");
     }
@@ -65,7 +66,7 @@ public:
   }
 
   void add_child(const T &data) {
-    if (this->_root == nullptr) {
+    if (this->_tree == nullptr) {
       throw std::runtime_error("Empty tree");
     }
     _TreeNode *new_node;
@@ -75,11 +76,10 @@ public:
       throw std::runtime_error("Memory allocation failed");
     }
     _back->children.push_back(new_node);
-    _back = new_node;
   }
 
   void add_child(const tree<T> &another_tree) {
-    if (this->_root == nullptr) {
+    if (this->_tree == nullptr) {
       throw std::runtime_error("Empty tree");
     }
     _TreeNode *new_node;
@@ -89,7 +89,6 @@ public:
       throw std::runtime_error("Memory allocation failed");
     }
     _back->children.push_back(new_node);
-    _back = new_node;
   }
 
   void add_sibling(const T &data) {

@@ -347,3 +347,5 @@ tree<html::_element> html::_parse(const pair<int, int> &scope) const {
 
   return root;
 }
+
+string html::show(const xpath &path) const {}
