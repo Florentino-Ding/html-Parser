@@ -6,6 +6,8 @@
 #define HTML_PARSER_CUSTOMTREE_H
 
 #include <cstddef>
+#include <functional>
+#include <iterator>
 #include <list>
 #include <new>
 #include <stdexcept>
@@ -35,6 +37,19 @@ private:
         }
       }
     }
+
+    list<T> find_all(const T &data) const {
+      list<T> result;
+      if (this->data == data) {
+        result.push_back(this->data);
+      }
+      for (auto &child : children) {
+        list<T> child_result = child->find_all(data);
+        result.insert(result.end(), child_result.begin(), child_result.end());
+      }
+
+      return result;
+    }
   };
   _TreeNode *_tree;
   _TreeNode *_back;
@@ -46,6 +61,16 @@ public:
   tree(const T &data) : _size(0) {
     try {
       _tree = new _TreeNode(data);
+    } catch (std::bad_alloc &e) {
+      throw std::runtime_error("Memory allocation failed");
+    }
+    _back = _tree;
+    _size++;
+  }
+
+  tree(const _TreeNode &node) : _size(0) {
+    try {
+      _tree = new _TreeNode(&node);
     } catch (std::bad_alloc &e) {
       throw std::runtime_error("Memory allocation failed");
     }
@@ -118,7 +143,99 @@ public:
     _back->parent->children.push_back(new_node);
     _back = new_node;
   }
+
+  bool empty() const { return _size == 0; }
+  int size() const { return _size; }
+  tree<T> root() const {
+    if (_tree == nullptr) {
+      throw std::runtime_error("Empty tree");
+    }
+    return tree<T>(_tree);
+  }
+  tree<T> parent() const {
+    if (_tree == nullptr) {
+      throw std::runtime_error("Empty tree");
+    }
+    if (_tree->parent == nullptr) {
+      throw std::runtime_error("Tree has no parent");
+    }
+    if (_back == _tree) {
+      throw std::runtime_error("Root has no parent");
+    }
+    return tree<T>(_back->parent);
+  }
+  list<tree<T>> find(const T &data) const {
+    list<tree<T>> result;
+    if (_tree == nullptr) {
+      return result;
+    }
+    for (auto &child : _tree->children) {
+      if (child->data == data) {
+        result.push_back(tree<T>(child));
+      }
+    }
+    return result;
+  }
+  template <typename AnotherT>
+  list<tree<T>>
+  find(const AnotherT &data,
+       const std::function<bool(const T &, const AnotherT &)> &cmp) const {
+    list<tree<T>> result;
+    if (_tree == nullptr) {
+      return result;
+    }
+    for (auto &child : _tree->children) {
+      if (cmp(child->data, data)) {
+        result.push_back(tree<T>(child));
+      }
+    }
+    return result;
+  }
+  list<tree<T>> find_all(const T &data) const {
+    list<tree<T>> result;
+    if (_tree == nullptr) {
+      return result;
+    }
+    if (_tree->data == data) {
+      result.push_back(tree<T>(_tree));
+    }
+    for (auto &child : _tree->children) {
+      list<tree<T>> child_result = tree<T>(child).find_all(data);
+      result.insert(result.end(), child_result.begin(), child_result.end());
+    }
+
+    return result;
+  }
+  template <typename AnotherT>
+  list<tree<T>>
+  find_all(const AnotherT &data,
+           const std::function<bool(const T &, const AnotherT &)> &cmp) const {
+    list<tree<T>> result;
+    if (_tree == nullptr) {
+      return result;
+    }
+    if (cmp(_tree->data, data)) {
+      result.push_back(tree<T>(_tree));
+    }
+    for (auto &child : _tree->children) {
+      list<tree<T>> child_result = tree<T>(child).find_all(data, cmp);
+      result.insert(result.end(), child_result.begin(), child_result.end());
+    }
+
+    return result;
+  }
+  operator string() const {
+    string result;
+    if (_tree == nullptr) {
+      return result;
+    }
+    result += string(_tree->data);
+    for (auto &child : _tree->children) {
+      result += string(tree<T>(child));
+    }
+    return result;
+  }
 };
-} // namespace custom
+}; // namespace custom
 
 #endif // HTML_PARSER_CUSTOMTREE_H

@@ -7,12 +7,16 @@
 
 #include "datastructure/customstack.h"
 #include "datastructure/customtree.h"
-#include "xpath_parser/xpath_parser.h"
+#include <atomic>
 #include <fstream>
 #include <iterator>
 #include <list>
 #include <string>
 #include <utility>
+
+namespace custom {
+class xpath;
+}
 
 using custom::stack, custom::tree, custom::xpath;
 using std::fstream, std::string, std::pair, std::list;
@@ -21,11 +25,12 @@ class html {
 private:
   struct _tag;
   struct _element;
-  friend class xpath;
 
   string _raw_content;
   string _clear_content;
   tree<_element> _html;
+
+  friend class custom::tree<_element>;
 
   class _tag {
   private:
@@ -48,17 +53,18 @@ private:
     bool operator!=(const string &s) const;
 
     bool is_self_closing_tag() const;
+    bool has_attr(const string &attr_name) const;
     string begin_tag() const;
     string end_tag() const;
   };
   struct _element {
     union data_union {
       _tag *tag;
-      std::pair<int, int> content_idx;
+      std::pair<string::const_iterator, string::const_iterator> content_idx;
 
       data_union() : tag(nullptr) {}
       data_union(const _tag &t) { tag = new _tag(t); }
-      data_union(const int start, const int end)
+      data_union(const string::iterator &start, const string::iterator &end)
           : content_idx(std::make_pair(start, end)) {}
     };
 
@@ -73,8 +79,36 @@ private:
         data.content_idx = e.data.content_idx;
       }
     }
-    _element(const pair<int, int> &p) : is_tag(false) { data.content_idx = p; }
+    _element(const pair<string::const_iterator, string::const_iterator> &p)
+        : is_tag(false) {
+      data.content_idx = p;
+    }
     _element(const _tag &t) : is_tag(true) { data.tag = new _tag(t); }
+
+    bool operator==(const _element &e) const {
+      if (is_tag != e.is_tag) {
+        return false;
+      }
+      if (is_tag) {
+        return *data.tag == *e.data.tag;
+      } else {
+        return data.content_idx == e.data.content_idx;
+      }
+    }
+    bool operator==(const _tag &t) const {
+      if (is_tag) {
+        return *data.tag == t;
+      } else {
+        return false;
+      }
+    }
+
+    bool has_attr(const string &attr_name) const {
+      if (is_tag) {
+        return data.tag->has_attr(attr_name);
+      }
+      return false;
+    }
   };
 
   void _clear_comment();
@@ -95,7 +129,30 @@ public:
     _html = _parse();
   }
   string raw_content() const { return _raw_content; }
-  string show(const xpath &path) const;
+  string show(xpath &path) const;
 };
+
+namespace custom {
+template <> inline tree<html::_element>::operator string() const {
+  string result;
+  if (_tree == nullptr) {
+    return result;
+  }
+  if (_tree->data.is_tag) {
+    result += _tree->data.data.tag->begin_tag();
+    for (auto &child : _tree->children) {
+      result += string(tree<html::_element>(child));
+    }
+    result += _tree->data.data.tag->end_tag();
+  } else {
+    if (not(_tree->children.empty())) {
+      throw std::runtime_error("invalid html tree");
+    }
+    result = string(_tree->data.data.content_idx.first,
+                    _tree->data.data.content_idx.second);
+  }
+  return result;
+}
+} // namespace custom
 
 #endif // HTML_PARSER_HTMLPARSER_H

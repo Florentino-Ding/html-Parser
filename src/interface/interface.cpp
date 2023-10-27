@@ -4,6 +4,7 @@
 
 #include "../../inc/interface/interface.h"
 #include "../../inc/xpath_parser/xpath_parser.h"
+#include <cstdio>
 #include <iostream>
 #include <string>
 
@@ -20,50 +21,70 @@ string CLTinterface::_help_info =
     "given xpath\n";
 
 char CLTinterface::_get_user_input() {
-  string input;
-  cin >> input;
-  if (input.size() == 1) {
-    if (input == "I") {
-      if (input.find_first_not_of(' ', 1) == string::npos) {
+  string input, instruction, arg1;
+  int ins_starts_pos, ins_end_pos, arg1_pos;
+  getline(cin, input);
+  // preprocess the input
+  ins_starts_pos = input.find_first_not_of(' ');
+  ins_end_pos = input.find_first_of(' ', ins_starts_pos);
+  instruction = input.substr(ins_starts_pos, ins_end_pos - ins_starts_pos);
+  arg1 =
+      input.substr(ins_end_pos + 1,
+                   input.find_first_of(' ', ins_end_pos + 1) - ins_end_pos - 1);
+  // check if the instruction is valid
+  if (instruction.size() == 1) {
+    if (instruction == "l") {
+      if (arg1.empty()) {
         _xpath = xpath();
       } else {
-        _xpath = xpath(input.substr(1));
+        _xpath = xpath(arg1);
       }
       return 'l';
+    } else if (instruction == "o") {
+      if (not(arg1.empty())) {
+        _html_path = arg1;
+        return 'o';
+      }
+    } else {
+      return instruction[0];
     }
-    return input[0];
   } else {
-    if (input == "help" or input == "quit") {
-      return input[0];
-    } else if (input.substr(0, 4) == "list") {
-      if (input.find_first_not_of(' ', 4) == string::npos) {
+    if (instruction == "help" or instruction == "quit") {
+      return instruction[0];
+    } else if (instruction == "list") {
+      if (arg1.empty()) {
         _xpath = xpath();
       } else {
-        _xpath = xpath(input.substr(input.find_first_not_of(' ', 4)));
+        _xpath = xpath(arg1);
       }
       return 'l';
+    } else if (instruction == "open") {
+      if (not(arg1.empty())) {
+        _html_path = arg1;
+        return 'o';
+      }
     }
   }
   return -1;
 }
 
-void CLTinterface::_load_html(const string &p) {
-  string path = p;
-  if (path.substr(0, 7) == "http://" || path.substr(0, 8) == "https://") {
-    cout << "Reading from URL: " << path << endl;
-    string command = "wget -O html/cache/downloaded.html " + path;
+void CLTinterface::_load_html() {
+  if (_html_path.substr(0, 7) == "http://" ||
+      _html_path.substr(0, 8) == "https://") {
+    cout << "Reading from URL: " << _html_path << endl;
+    string command = "wget -O html/cache/downloaded.html " + _html_path;
     int result = system(command.c_str());
     if (result != 0) {
       throw std::runtime_error("Failed to download the HTML file.");
     } else {
-      path = "html/cache/downloaded.html";
-      cout << "Downloaded to local path: cache/" << path << endl;
+      _html_path = "html/cache/downloaded.html";
+      cout << "Downloaded to local path: cache/" << _html_path << endl;
     }
   }
 
   string html_content;
-  fstream html_file(path);
-  cout << "Reading from local path: " << path << endl;
+  fstream html_file(_html_path);
+  cout << "Reading from local path: " << _html_path << endl;
   if (html_file.is_open()) {
     string line;
     while (getline(html_file, line)) {
@@ -81,6 +102,7 @@ void CLTinterface::_show_html() {
   if (_xpath.empty()) {
     cout << _html.raw_content() << endl;
   } else {
+    cout << _html.show(_xpath);
   }
 }
 
@@ -98,6 +120,9 @@ void CLTinterface::run() {
       return;
     case 'l':
       _show_html();
+      break;
+    case 'o':
+      _load_html();
       break;
     default:
     case -1:

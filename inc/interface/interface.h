@@ -17,14 +17,17 @@ private:
   static string _help_info;
   html _html;
   xpath _xpath;
+  string _html_path;
 
   char _get_user_input();
-  void _load_html(const string &html_path);
+  void _load_html();
   void _show_html();
 
 public:
   CLTinterface() {}
-  CLTinterface(const string &html_path) { _load_html(html_path); }
+  CLTinterface(const string &html_path) : _html_path(html_path) {
+    _load_html();
+  }
   ~CLTinterface() {}
 
   void run();

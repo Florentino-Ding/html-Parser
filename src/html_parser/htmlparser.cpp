@@ -1,5 +1,9 @@
 #include "../../inc/htmlparser.h"
+#include "../../inc/xpath_parser/xpath_parser.h"
+#include <algorithm>
+#include <functional>
 #include <iostream>
+#include <list>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -118,6 +122,15 @@ string html::_tag::begin_tag() const {
 }
 
 bool html::_tag::is_self_closing_tag() const { return _self_closing; }
+
+bool html::_tag::has_attr(const string &attr_name) const {
+  for (auto &attribute : _attributes) {
+    if (attribute.first == attr_name) {
+      return true;
+    }
+  }
+  return false;
+}
 
 string html::_tag::end_tag() const {
   if (_self_closing) {
@@ -324,7 +337,9 @@ tree<html::_element> html::_parse(const pair<int, int> &scope) const {
     string content =
         _clear_content.substr(tag_end_pos, next_tag_pos - tag_end_pos);
     if (content.find_first_not_of(' ') != string::npos) {
-      root.add_child(*new _element(std::make_pair(tag_end_pos, next_tag_pos)));
+      root.add_child(
+          *new _element(std::make_pair(_clear_content.begin() + tag_end_pos,
+                                       _clear_content.begin() + next_tag_pos)));
     }
     // if the next tag is a beginning tag, parse the tag and add it as a child
     if (_is_beginning_tag(next_tag_pos)) {
@@ -348,4 +363,52 @@ tree<html::_element> html::_parse(const pair<int, int> &scope) const {
   return root;
 }
 
-string html::show(const xpath &path) const {}
+string html::show(xpath &path) const {
+  string result;
+  list<tree<html::_element>> elements;
+  if (path.abs_path()) {
+    elements.push_back(_html.root());
+  } else {
+    elements = _html.find_all(_tag(path.top()));
+  }
+  while (not(path.empty())) {
+    list<tree<html::_element>> new_elements;
+    char type = path.type();
+    for (auto &e : elements) {
+      switch (type) {
+      case CHILD: {
+        if (path.all()) {
+          list<tree<html::_element>> t = e.find_all(_tag(path.top()));
+          new_elements.insert(new_elements.end(), t.begin(), t.end());
+        } else {
+          list<tree<html::_element>> t = e.find(_tag(path.top()));
+          new_elements.insert(new_elements.end(), t.begin(), t.end());
+        }
+      } break;
+      case PARENT:
+        new_elements.push_back(e.parent());
+        break;
+      case ATTRIBUTE: {
+        std::function<bool(const _element &, const string &)> cmp =
+            [](const _element &a, const string &s) -> bool {
+          return a.has_attr(s);
+        };
+        if (path.all()) {
+          list<tree<_element>> t = e.find_all(path.top(), cmp);
+          new_elements.insert(new_elements.end(), t.begin(), t.end());
+        } else {
+          list<tree<html::_element>> t = e.find(_tag(path.top()));
+          new_elements.insert(new_elements.end(), t.begin(), t.end());
+        }
+      } break;
+      }
+      elements = new_elements;
+    }
+    path.next();
+  }
+  for (auto &e : elements) {
+    result += string(e);
+  }
+
+  return result;
+}
