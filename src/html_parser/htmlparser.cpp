@@ -1,6 +1,7 @@
 #include "../../inc/htmlparser.h"
 #include "../../inc/xpath_parser/xpath_parser.h"
 #include <algorithm>
+#include <cctype>
 #include <functional>
 #include <iostream>
 #include <list>
@@ -103,7 +104,10 @@ bool html::_tag::operator!=(const string &s) const {
     ++pos;
   }
   string tag_name = s.substr(start, pos - start);
-  return _name != tag_name;
+  string name = _name;
+  std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+  std::transform(tag_name.begin(), tag_name.end(), tag_name.begin(), ::tolower);
+  return name != tag_name;
 }
 
 string html::_tag::begin_tag() const {
@@ -369,7 +373,8 @@ string html::show(xpath &path) const {
   if (path.abs_path()) {
     elements.push_back(_html.root());
   } else {
-    elements = _html.find_all(_tag(path.top()));
+    elements = _html.find_all(_tag("<" + path.top() + ">"));
+    path.next();
   }
   while (not(path.empty())) {
     list<tree<html::_element>> new_elements;
@@ -378,10 +383,11 @@ string html::show(xpath &path) const {
       switch (type) {
       case CHILD: {
         if (path.all()) {
-          list<tree<html::_element>> t = e.find_all(_tag(path.top()));
+          list<tree<html::_element>> t =
+              e.find_all(_tag("<" + path.top() + ">"));
           new_elements.insert(new_elements.end(), t.begin(), t.end());
         } else {
-          list<tree<html::_element>> t = e.find(_tag(path.top()));
+          list<tree<html::_element>> t = e.find(_tag("<" + path.top() + ">"));
           new_elements.insert(new_elements.end(), t.begin(), t.end());
         }
       } break;
@@ -397,13 +403,13 @@ string html::show(xpath &path) const {
           list<tree<_element>> t = e.find_all(path.top(), cmp);
           new_elements.insert(new_elements.end(), t.begin(), t.end());
         } else {
-          list<tree<html::_element>> t = e.find(_tag(path.top()));
+          list<tree<html::_element>> t = e.find(_tag("<" + path.top() + ">"));
           new_elements.insert(new_elements.end(), t.begin(), t.end());
         }
       } break;
       }
-      elements = new_elements;
     }
+    elements = new_elements;
     path.next();
   }
   for (auto &e : elements) {

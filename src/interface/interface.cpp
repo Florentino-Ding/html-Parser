@@ -28,9 +28,11 @@ char CLTinterface::_get_user_input() {
   ins_starts_pos = input.find_first_not_of(' ');
   ins_end_pos = input.find_first_of(' ', ins_starts_pos);
   instruction = input.substr(ins_starts_pos, ins_end_pos - ins_starts_pos);
-  arg1 =
-      input.substr(ins_end_pos + 1,
-                   input.find_first_of(' ', ins_end_pos + 1) - ins_end_pos - 1);
+  if (input.find_first_not_of(' ', ins_end_pos) != string::npos) {
+    arg1 = input.substr(input.find_first_not_of(' ', ins_end_pos));
+  } else {
+    arg1 = "";
+  }
   // check if the instruction is valid
   if (instruction.size() == 1) {
     if (instruction == "l") {
@@ -102,7 +104,7 @@ void CLTinterface::_show_html() {
   if (_xpath.empty()) {
     cout << _html.raw_content() << endl;
   } else {
-    cout << _html.show(_xpath);
+    cout << _html.show(_xpath) << endl;
   }
 }
 
