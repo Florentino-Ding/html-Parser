@@ -7,12 +7,9 @@
 
 #include "datastructure/customstack.h"
 #include "datastructure/customtree.h"
-#include <atomic>
 #include <fstream>
-#include <iterator>
 #include <list>
 #include <string>
-#include <utility>
 
 namespace custom {
 class xpath;
@@ -23,7 +20,7 @@ using std::fstream, std::string, std::pair, std::list;
 
 class html {
 private:
-  struct _tag;
+  class _tag;
   struct _element;
 
   string _raw_content;
@@ -126,7 +123,8 @@ public:
   html() = default;
   html(const string &content) : _raw_content(content), _clear_content(content) {
     _clear();
-    _html = _parse();
+    _html = tree<_element>(_element());
+    _html.add_child(_parse());
   }
   string raw_content() const { return _raw_content; }
   string show(xpath &path) const;

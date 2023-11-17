@@ -1,8 +1,7 @@
 #include "../inc/interface/interface.h"
 #include <iostream>
-#include <unistd.h>
 
-int main(int argc, char *argv[]) {
+auto main(const int argc, char* argv[]) -> int {
   using namespace std;
   using interface::CLTinterface;
 

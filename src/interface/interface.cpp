@@ -110,7 +110,6 @@ void CLTinterface::_show_html() {
 
 void CLTinterface::run() {
   char user_input;
-  xpath path;
   while (true) {
     cout << "(html-parser) ";
     user_input = _get_user_input();

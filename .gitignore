@@ -1,5 +1,8 @@
-/cmake-build-debug
-/.cache
-/.idea
-/.vscode
-/html
+cmake-build-debug/
+.cache/
+.idea/
+.vscode/
+html/
+examples/
+
+CMakeLists.txt
