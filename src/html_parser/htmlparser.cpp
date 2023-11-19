@@ -11,7 +11,7 @@
 
 using std::string;
 
-html::_tag::_tag(const string &s) {
+void html::_tag::_parse(const string &s) {
   if (s[0] != '<') {
     throw std::runtime_error("Not a tag");
   }
@@ -76,6 +76,11 @@ html::_tag::_tag(const string &s) {
   }
 }
 
+void html::_tag::_new_line_tag_init() {
+  _new_line_tag = std::find(_no_newline_tags.begin(), _no_newline_tags.end(),
+                            _name) == _no_newline_tags.end();
+}
+
 bool html::_tag::operator==(const string &s) const {
   // TODO: make the code more robust
   if (s[0] != '<') {
@@ -110,6 +115,21 @@ bool html::_tag::operator!=(const string &s) const {
   return name != tag_name;
 }
 
+bool html::_tag::is_self_closing_tag() const { return _self_closing; }
+
+bool html::_tag::has_attr(const string &attr_name) const {
+  for (auto &attribute : _attributes) {
+    if (attribute.first == attr_name) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool html::_tag::new_line_tag() const {
+  return _new_line_tag and not(_self_closing);
+}
+
 string html::_tag::begin_tag() const {
   string tag_str;
   tag_str += '<';
@@ -122,18 +142,8 @@ string html::_tag::begin_tag() const {
     tag_str += attribute.second;
     tag_str += '"';
   }
+  tag_str += '>';
   return tag_str;
-}
-
-bool html::_tag::is_self_closing_tag() const { return _self_closing; }
-
-bool html::_tag::has_attr(const string &attr_name) const {
-  for (auto &attribute : _attributes) {
-    if (attribute.first == attr_name) {
-      return true;
-    }
-  }
-  return false;
 }
 
 string html::_tag::end_tag() const {

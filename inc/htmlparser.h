@@ -8,15 +8,17 @@
 #include "datastructure/customstack.h"
 #include "datastructure/customtree.h"
 #include <fstream>
-#include <list>
-#include <string>
+#include <iostream>
+#include <unordered_set>
+
+#define INDENT_SIZE 4
 
 namespace custom {
 class xpath;
 }
 
 using custom::stack, custom::tree, custom::xpath;
-using std::fstream, std::string, std::pair, std::list;
+using std::fstream, std::string, std::pair, std::list, std::unordered_set;
 
 class html {
 private:
@@ -31,18 +33,29 @@ private:
 
   class _tag {
   private:
+    const inline static unordered_set<string> _no_newline_tags = {
+        "title", "li", "dt", "dd", "p",    "h1", "h2", "h3",
+        "h4",    "h5", "h6", "a",  "span", "b",  "i",  "strong"};
+
     string _name;
     list<pair<string, string>> _attributes;
     bool _self_closing;
+    bool _new_line_tag;
+
+    void _parse(const string &);
+    void _new_line_tag_init();
 
   public:
     _tag()
         : _name(""), _attributes(list<pair<string, string>>()),
           _self_closing(false) {}
-    _tag(const string &);
+    _tag(const string &s) {
+      _parse(s);
+      _new_line_tag_init();
+    }
     _tag(const _tag &t)
         : _name(t._name), _attributes(t._attributes),
-          _self_closing(t._self_closing) {}
+          _self_closing(t._self_closing), _new_line_tag(t._new_line_tag) {}
 
     bool operator==(const _tag &s) const { return _name == s._name; }
     bool operator==(const string &s) const;
@@ -51,6 +64,7 @@ private:
 
     bool is_self_closing_tag() const;
     bool has_attr(const string &attr_name) const;
+    bool new_line_tag() const;
     string begin_tag() const;
     string end_tag() const;
   };
@@ -132,17 +146,51 @@ public:
 
 namespace custom {
 template <> inline tree<html::_element>::operator string() const {
+  static int indent = 0;
+  static bool new_line_tag = false;
+
   string result;
+  bool parent_new_line_tag = new_line_tag;
   if (_tree == nullptr) {
     return result;
   }
+  // if _element is a tag, add tag content
   if (_tree->data.is_tag) {
+    // add indent if the parent is not a new line tag
+    if (parent_new_line_tag) {
+      result += '\n';
+      for (int i = 0; i < indent * INDENT_SIZE; i++) {
+        result += ' ';
+      }
+    }
+    new_line_tag = _tree->data.data.tag->new_line_tag();
     result += _tree->data.data.tag->begin_tag();
+    // increase indent and add children
+    indent++;
     for (auto &child : _tree->children) {
       result += string(tree<html::_element>(child));
     }
+    // reduce indent and add end tag
+    indent--;
+    // add a new line and ident for the end tag
+    if (_tree->data.data.tag->new_line_tag()) {
+      result += '\n';
+      for (int i = 0; i < indent * INDENT_SIZE; i++) {
+        result += ' ';
+      }
+    }
     result += _tree->data.data.tag->end_tag();
-  } else {
+    // restore new_line_tag
+    new_line_tag = parent_new_line_tag;
+  }
+  // if _element is not a tag, insert raw content into result
+  else {
+    // add indent if the parent is not a new line tag
+    if (parent_new_line_tag) {
+      for (int i = 0; i < indent * INDENT_SIZE; i++) {
+        result += ' ';
+      }
+    }
     if (not(_tree->children.empty())) {
       throw std::runtime_error("invalid html tree");
     }
