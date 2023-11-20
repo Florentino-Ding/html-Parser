@@ -4,7 +4,6 @@
 
 #include "../../inc/interface/interface.h"
 #include "../../inc/xpath_parser/xpath_parser.h"
-#include <cstdio>
 #include <iostream>
 #include <string>
 
@@ -20,28 +19,40 @@ string CLTinterface::_help_info =
     "  list <xpath>: list all the nodes that match the "
     "given xpath\n";
 
+string CLTinterface::_get_input_instruction(const string &input) {
+  // preprocess the input
+  int ins_starts_pos = input.find_first_not_of(' ');
+  int ins_end_pos = input.find_first_of(' ', ins_starts_pos);
+
+  return input.substr(ins_starts_pos, ins_end_pos - ins_starts_pos);
+}
+
+string CLTinterface::_get_input_arg(const string &input) {
+  int ins_starts_pos = input.find_first_not_of(' ');
+  int ins_end_pos = input.find_first_of(' ', ins_starts_pos);
+
+  if (input.find_first_not_of(' ', ins_end_pos) != string::npos) {
+    return input.substr(input.find_first_not_of(' ', ins_end_pos));
+  } else {
+    return "";
+  }
+}
+
 char CLTinterface::_get_user_input() {
   string input, instruction, arg1;
-  int ins_starts_pos, ins_end_pos, arg1_pos;
+  // get the user input
   getline(cin, input);
-  // preprocess the input
-  ins_starts_pos = input.find_first_not_of(' ');
-  ins_end_pos = input.find_first_of(' ', ins_starts_pos);
-  instruction = input.substr(ins_starts_pos, ins_end_pos - ins_starts_pos);
-  if (input.find_first_not_of(' ', ins_end_pos) != string::npos) {
-    arg1 = input.substr(input.find_first_not_of(' ', ins_end_pos));
-  } else {
-    arg1 = "";
-  }
+  instruction = _get_input_instruction(input);
+  arg1 = _get_input_arg(input);
   // check if the instruction is valid
   if (instruction.size() == 1) {
-    if (instruction == "l") {
+    if (instruction == "l" or instruction == "t") {
       if (arg1.empty()) {
         _xpath = xpath();
       } else {
         _xpath = xpath(arg1);
       }
-      return 'l';
+      return instruction[0];
     } else if (instruction == "o") {
       if (not(arg1.empty())) {
         _html_path = arg1;
@@ -53,13 +64,13 @@ char CLTinterface::_get_user_input() {
   } else {
     if (instruction == "help" or instruction == "quit") {
       return instruction[0];
-    } else if (instruction == "list") {
+    } else if (instruction == "list" or instruction == "text") {
       if (arg1.empty()) {
         _xpath = xpath();
       } else {
         _xpath = xpath(arg1);
       }
-      return 'l';
+      return instruction[0];
     } else if (instruction == "open") {
       if (not(arg1.empty())) {
         _html_path = arg1;
@@ -100,11 +111,11 @@ void CLTinterface::_load_html() {
   _html = html(html_content);
 }
 
-void CLTinterface::_show_html() {
+void CLTinterface::_show_html(const bool text_only) {
   if (_xpath.empty()) {
     cout << _html.raw_content() << endl;
   } else {
-    cout << _html.show(_xpath) << endl;
+    cout << _html.show(_xpath, text_only) << endl;
   }
 }
 
@@ -121,6 +132,9 @@ void CLTinterface::run() {
       return;
     case 'l':
       _show_html();
+      break;
+    case 't':
+      _show_html(true);
       break;
     case 'o':
       _load_html();

@@ -6,11 +6,9 @@
 #define HTMLPARSER_CSSSELECTOR_H
 
 
-
 class CssSelector {
 
 };
-
 
 
 #endif //HTMLPARSER_CSSSELECTOR_H

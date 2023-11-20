@@ -11,6 +11,72 @@
 
 using std::string;
 
+bool text_only;
+
+namespace custom {
+template <> inline tree<html::_element>::operator string() const {
+  static int indent = 0;
+  static bool new_line_tag = false;
+
+  string result;
+  bool parent_new_line_tag = new_line_tag;
+  new_line_tag = _tree->data.data.tag->new_line_tag();
+  if (_tree == nullptr) {
+    return result;
+  }
+  // if _element is a tag, add tag content
+  if (_tree->data.is_tag) {
+    // add indent if the parent is not a new line tag
+    if (parent_new_line_tag) {
+      result += '\n';
+      for (int i = 0; i < indent * INDENT_SIZE; i++) {
+        result += ' ';
+      }
+    }
+    if (not text_only) {
+      result += _tree->data.data.tag->begin_tag();
+    }
+    // increase indent and add children
+    indent++;
+    for (auto &child : _tree->children) {
+      result += string(tree<html::_element>(child));
+    }
+    // reduce indent and add end tag
+    indent--;
+    // add a new line and ident for the end tag
+    if (_tree->data.data.tag->new_line_tag()) {
+      if (not text_only) {
+        result += '\n';
+      }
+      for (int i = 0; i < indent * INDENT_SIZE; i++) {
+        result += ' ';
+      }
+    }
+    if (not text_only) {
+      result += _tree->data.data.tag->end_tag();
+    }
+  }
+  // if _element is not a tag, insert raw content into result
+  else {
+    // add indent if the parent is not a new line tag
+    if (parent_new_line_tag) {
+      for (int i = 0; i < indent * INDENT_SIZE; i++) {
+        result += ' ';
+      }
+    }
+    if (not(_tree->children.empty())) {
+      throw std::runtime_error("invalid html tree");
+    }
+    result = string(_tree->data.data.content_idx.first,
+                    _tree->data.data.content_idx.second);
+  }
+  // restore new_line_tag
+  new_line_tag = parent_new_line_tag;
+
+  return result;
+}
+} // namespace custom
+
 void html::_tag::_parse(const string &s) {
   if (s[0] != '<') {
     throw std::runtime_error("Not a tag");
@@ -61,7 +127,7 @@ void html::_tag::_parse(const string &s) {
       ++pos;
     }
     string attribute_value = s.substr(start, pos - start);
-    _attributes.push_back(std::make_pair(attribute_name, attribute_value));
+    _attributes.insert(std::make_pair(attribute_name, attribute_value));
     // skip the '"'
     pos++;
   }
@@ -118,12 +184,7 @@ bool html::_tag::operator!=(const string &s) const {
 bool html::_tag::is_self_closing_tag() const { return _self_closing; }
 
 bool html::_tag::has_attr(const string &attr_name) const {
-  for (auto &attribute : _attributes) {
-    if (attribute.first == attr_name) {
-      return true;
-    }
-  }
-  return false;
+  return _attributes.find(attr_name) != _attributes.end();
 }
 
 bool html::_tag::new_line_tag() const {
@@ -377,7 +438,8 @@ tree<html::_element> html::_parse(const pair<int, int> &scope) const {
   return root;
 }
 
-string html::show(xpath &path) const {
+string html::show(xpath &path, const bool _text_only) const {
+  text_only = _text_only;
   string result;
   list<tree<html::_element>> elements;
   if (path.abs_path()) {

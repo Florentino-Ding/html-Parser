@@ -19,9 +19,11 @@ private:
   xpath _xpath;
   string _html_path;
 
+  string _get_input_instruction(const string &);
+  string _get_input_arg(const string &);
   char _get_user_input();
   void _load_html();
-  void _show_html();
+  void _show_html(const bool _text_only = false);
 
 public:
   CLTinterface() {}
