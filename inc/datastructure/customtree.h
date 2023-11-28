@@ -7,86 +7,66 @@
 
 #include <cstddef>
 #include <functional>
-#include <iterator>
 #include <list>
+#include <memory>
 #include <new>
 #include <stdexcept>
 #include <string>
 
 namespace custom {
-using std::pair, std::string, std::list;
+using std::pair, std::string, std::list, std::shared_ptr, std::weak_ptr;
 
 template <typename T> class tree {
 private:
   struct _TreeNode {
     T data;
-    list<_TreeNode *> children;
-    _TreeNode *parent;
+    list<shared_ptr<_TreeNode>> children;
+    shared_ptr<_TreeNode> parent;
 
     _TreeNode() : parent(nullptr), data() {}
 
-    _TreeNode(const T d, _TreeNode *p = nullptr) : data(d), parent(p) {}
+    _TreeNode(const T &d, _TreeNode *p = nullptr) : data(d), parent(p) {}
 
-    _TreeNode(const _TreeNode *another_node, _TreeNode *p = nullptr)
-        : data(another_node->data), parent(p) {
-      for (auto &child : another_node->children) {
-        try {
-          children.push_back(new _TreeNode(*child));
-        } catch (std::bad_alloc &e) {
-          throw std::runtime_error("Memory allocation failed");
-        }
-      }
-    }
+    _TreeNode(const T &d, shared_ptr<_TreeNode> p) : data(d), parent(p) {}
 
-    list<T> find_all(const T &data) const {
-      list<T> result;
-      if (this->data == data) {
-        result.push_back(this->data);
+    _TreeNode(const tree &another_tree, _TreeNode *p = nullptr) {
+      // if another tree is empty
+      if (another_tree.empty()) {
+        throw std::runtime_error("Empty tree");
       }
-      for (auto &child : children) {
-        list<T> child_result = child->find_all(data);
-        result.insert(result.end(), child_result.begin(), child_result.end());
-      }
-
-      return result;
+      // if another tree is not empty
     }
   };
-  _TreeNode *_tree;
-  _TreeNode *_back;
-  size_t _size;
+
+  shared_ptr<_TreeNode> _tree;
+  shared_ptr<_TreeNode> _back;
 
 public:
-  tree() : _size(0), _tree(nullptr), _back(nullptr) {}
+  tree() : _tree(nullptr), _back(nullptr) {}
 
-  tree(const T &data) : _size(0) {
-    try {
-      _tree = new _TreeNode(data);
-    } catch (std::bad_alloc &e) {
-      throw std::runtime_error("Memory allocation failed");
-    }
+  tree(const T &data) {
+    _tree = std::make_shared<_TreeNode>(data);
     _back = _tree;
-    _size++;
   }
 
-  tree(const _TreeNode &node) : _size(0) {
-    try {
-      _tree = new _TreeNode(&node);
-    } catch (std::bad_alloc &e) {
-      throw std::runtime_error("Memory allocation failed");
+  tree(const shared_ptr<_TreeNode> &node) : _tree(node), _back(node) {
+    while (_back != nullptr and _back->children.size() > 0) {
+      _back = shared_ptr<_TreeNode>(_back->children.back());
     }
-    _back = _tree;
-    _size++;
   }
 
-  tree(const tree &another_tree) : _size(another_tree._size) {
-    try {
-      _tree = new _TreeNode(another_tree._tree);
-    } catch (std::bad_alloc &e) {
-      throw std::runtime_error("Memory allocation failed");
-    }
+  // tree(_TreeNode *const node)
+  //     : _tree(shared_ptr<_TreeNode>(node)), _back(_tree) {
+  //   while (_back != nullptr and _back->children.size() > 0) {
+  //     _back = shared_ptr<_TreeNode>(_back->children.back());
+  //   }
+  // }
+
+  tree(const tree &another_tree) {
+    _tree = std::make_shared<_TreeNode>(*another_tree._tree.get());
     _back = _tree;
-    while (!_back->children.empty()) {
-      _back = _back->children.back();
+    while (_back != nullptr and _back->children.size() > 0) {
+      _back = shared_ptr<_TreeNode>(_back->children.back());
     }
   }
 
@@ -94,64 +74,19 @@ public:
     if (this->_tree == nullptr) {
       throw std::runtime_error("Empty tree");
     }
-    _TreeNode *new_node;
-    try {
-      new_node = new _TreeNode(data, _back);
-    } catch (std::bad_alloc &e) {
-      throw std::runtime_error("Memory allocation failed");
-    }
-    _back->children.push_back(new_node);
+    _back->children.push_back(std::make_shared<_TreeNode>(data));
   }
 
   void add_child(const tree<T> &another_tree) {
     if (this->_tree == nullptr) {
       throw std::runtime_error("Empty tree");
     }
-    _TreeNode *new_node;
-    try {
-      new_node = new _TreeNode(another_tree._tree, _back);
-    } catch (std::bad_alloc &e) {
-      throw std::runtime_error("Memory allocation failed");
-    }
-    _back->children.push_back(new_node);
+    another_tree._tree->parent = _back;
+    _back->children.push_back(another_tree._tree);
   }
 
-  void add_sibling(const T &data) {
-    _TreeNode *new_node;
-    if (_back == _tree or _back->parent == nullptr) {
-      throw std::runtime_error("Tree has only one layer");
-    }
-    try {
-      new_node = new _TreeNode(data, _back->parent);
-    } catch (std::bad_alloc &e) {
-      throw std::runtime_error("Memory allocation failed");
-    }
-    _back->parent->children.push_back(new_node);
-    _back = new_node;
-  }
+  bool empty() const { return _tree == nullptr; }
 
-  void add_sibling(const tree<T> &another_tree) {
-    _TreeNode *new_node;
-    if (_back == _tree or _back->parent == nullptr) {
-      throw std::runtime_error("Tree has only one layer");
-    }
-    try {
-      new_node = new _TreeNode(another_tree._tree, _back->parent);
-    } catch (std::bad_alloc &e) {
-      throw std::runtime_error("Memory allocation failed");
-    }
-    _back->parent->children.push_back(new_node);
-    _back = new_node;
-  }
-
-  bool empty() const { return _size == 0; }
-  int size() const { return _size; }
-  tree<T> root() const {
-    if (_tree == nullptr) {
-      throw std::runtime_error("Empty tree");
-    }
-    return tree<T>(_tree);
-  }
   tree<T> parent() const {
     if (_tree == nullptr) {
       throw std::runtime_error("Empty tree");
@@ -162,8 +97,9 @@ public:
     if (_back == _tree) {
       throw std::runtime_error("Root has no parent");
     }
-    return tree<T>(_back->parent);
+    return tree<T>(_tree->parent);
   }
+
   list<tree<T>> find(const T &data) const {
     list<tree<T>> result;
     if (_tree == nullptr) {
@@ -176,6 +112,7 @@ public:
     }
     return result;
   }
+
   template <typename AnotherT>
   list<tree<T>>
   find(const AnotherT &data,
@@ -191,6 +128,7 @@ public:
     }
     return result;
   }
+
   list<tree<T>> find_all(const T &data) const {
     list<tree<T>> result;
     if (_tree == nullptr) {
@@ -206,6 +144,7 @@ public:
 
     return result;
   }
+
   template <typename AnotherT>
   list<tree<T>>
   find_all(const AnotherT &data,
@@ -224,6 +163,7 @@ public:
 
     return result;
   }
+
   operator string() const {
     string result;
     if (_tree == nullptr) {

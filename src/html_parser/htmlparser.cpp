@@ -1,13 +1,12 @@
-#include "../../inc/htmlparser.h"
-#include "../../inc/xpath_parser/xpath_parser.h"
+#include "../../inc/xpath/xpath.h"
 #include <algorithm>
 #include <cctype>
 #include <functional>
 #include <iostream>
 #include <list>
+#include <memory>
 #include <stdexcept>
 #include <string>
-#include <utility>
 
 using std::string;
 
@@ -395,6 +394,7 @@ tree<html::_element> html::_parse(const pair<int, int> &scope) const {
       next_tag_pos = _find_next_tag(tag_end_pos);
   _tag tag(_get_tag_content(start));
   tree<_element> root = tree<_element>(_element(tag));
+  // if the tag is a self-closing tag, return the root
   if (tag.is_self_closing_tag()) {
     return root;
   }
@@ -413,8 +413,8 @@ tree<html::_element> html::_parse(const pair<int, int> &scope) const {
         _clear_content.substr(tag_end_pos, next_tag_pos - tag_end_pos);
     if (content.find_first_not_of(' ') != string::npos) {
       root.add_child(
-          *new _element(std::make_pair(_clear_content.begin() + tag_end_pos,
-                                       _clear_content.begin() + next_tag_pos)));
+          _element(std::make_pair(_clear_content.begin() + tag_end_pos,
+                                  _clear_content.begin() + next_tag_pos)));
     }
     // if the next tag is a beginning tag, parse the tag and add it as a child
     if (_is_beginning_tag(next_tag_pos)) {
@@ -443,7 +443,7 @@ string html::show(xpath &path, const bool _text_only) const {
   string result;
   list<tree<html::_element>> elements;
   if (path.abs_path()) {
-    elements.push_back(_html.root());
+    elements.push_back(_html);
   } else {
     elements = _html.find_all(_tag("<" + path.top() + ">"));
     path.next();

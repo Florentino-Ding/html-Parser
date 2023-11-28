@@ -5,7 +5,6 @@
 #ifndef HTML_PARSER_XPATH_PARSER_H
 #define HTML_PARSER_XPATH_PARSER_H
 
-#include "../datastructure/customstack.h"
 #include "../htmlparser.h"
 #include <istream>
 #include <queue>
@@ -18,7 +17,6 @@
 
 namespace custom {
 
-using custom::stack;
 using std::string, std::queue;
 
 class xpath {

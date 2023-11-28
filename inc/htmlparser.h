@@ -5,10 +5,9 @@
 #ifndef HTML_PARSER_HTMLPARSER_H
 #define HTML_PARSER_HTMLPARSER_H
 
-#include "datastructure/customstack.h"
 #include "datastructure/customtree.h"
 #include <fstream>
-#include <iostream>
+#include <stack>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -19,9 +18,9 @@ namespace custom {
 class xpath;
 }
 
-using custom::stack, custom::tree, custom::xpath;
-using std::fstream, std::string, std::pair, std::list, std::unordered_set,
-    std::unordered_map;
+using custom::tree, custom::xpath;
+using std::fstream, std::string, std::pair, std::list, std::stack,
+    std::unordered_set, std::unordered_map;
 
 class html {
 private:
@@ -77,7 +76,6 @@ private:
       std::pair<string::const_iterator, string::const_iterator> content_idx;
 
       data_union() : tag(nullptr) {}
-      data_union(const _tag &t) { tag = new _tag(t); }
       data_union(const string::iterator &start, const string::iterator &end)
           : content_idx(std::make_pair(start, end)) {}
     };

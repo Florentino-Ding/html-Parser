@@ -5,8 +5,7 @@
 #ifndef HTML_PARSER_INTERFACE_H
 #define HTML_PARSER_INTERFACE_H
 
-#include "../htmlparser.h"
-#include "../xpath_parser/xpath_parser.h"
+#include "../xpath/xpath.h"
 #include <string>
 namespace interface {
 

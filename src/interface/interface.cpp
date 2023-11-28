@@ -3,7 +3,7 @@
 //
 
 #include "../../inc/interface/interface.h"
-#include "../../inc/xpath_parser/xpath_parser.h"
+#include "../../inc/xpath/xpath.h"
 #include <iostream>
 #include <string>
 

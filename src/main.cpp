@@ -1,17 +1,23 @@
 #include "../inc/interface/interface.h"
+#include <exception>
 #include <iostream>
 
-auto main(const int argc, char* argv[]) -> int {
+int main(const int argc, char *argv[]) {
   using namespace std;
   using interface::CLTinterface;
 
   if (argc < 2) {
     cout << "Please provide a local path or URL as an argument." << endl;
-    return 0;
+    exit(1);
   }
 
-  CLTinterface interface(argv[1]);
-  interface.run();
+  try {
+    CLTinterface interface(argv[1]);
+    interface.run();
+  } catch (exception &e) {
+    cout << "An error occurred when program running: " << e.what() << endl;
+    exit(1);
+  }
 
-  return 0;
+  exit(0);
 }
