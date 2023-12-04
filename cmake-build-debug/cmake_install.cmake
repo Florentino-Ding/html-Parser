@@ -49,7 +49,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/Users/dingluran/Projects/homeworks/数据结构/html_parser/cmake-build-debug/src/xpath_parser/cmake_install.cmake")
+  include("/Users/dingluran/Projects/homeworks/数据结构/html_parser/cmake-build-debug/src/xpath/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)

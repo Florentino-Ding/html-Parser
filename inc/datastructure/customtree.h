@@ -7,9 +7,9 @@
 
 #include <cstddef>
 #include <functional>
+#include <iostream>
 #include <list>
 #include <memory>
-#include <new>
 #include <stdexcept>
 #include <string>
 
@@ -29,12 +29,10 @@ private:
 
     _TreeNode(const T &d, shared_ptr<_TreeNode> p) : data(d), parent(p) {}
 
-    _TreeNode(const tree &another_tree, _TreeNode *p = nullptr) {
-      // if another tree is empty
-      if (another_tree.empty()) {
-        throw std::runtime_error("Empty tree");
+    _TreeNode(const _TreeNode &another_node) : data(another_node.data) {
+      for (auto &child : another_node.children) {
+        children.push_back(std::make_shared<_TreeNode>(*child));
       }
-      // if another tree is not empty
     }
   };
 
@@ -55,18 +53,11 @@ public:
     }
   }
 
-  // tree(_TreeNode *const node)
-  //     : _tree(shared_ptr<_TreeNode>(node)), _back(_tree) {
-  //   while (_back != nullptr and _back->children.size() > 0) {
-  //     _back = shared_ptr<_TreeNode>(_back->children.back());
-  //   }
-  // }
-
   tree(const tree &another_tree) {
-    _tree = std::make_shared<_TreeNode>(*another_tree._tree.get());
+    _tree = std::make_shared<_TreeNode>(*another_tree._tree);
     _back = _tree;
     while (_back != nullptr and _back->children.size() > 0) {
-      _back = shared_ptr<_TreeNode>(_back->children.back());
+      _back = _back->children.back();
     }
   }
 
@@ -100,7 +91,7 @@ public:
     return tree<T>(_tree->parent);
   }
 
-  list<tree<T>> find(const T &data) const {
+  list<tree<T>> find(const T &data, int first_of = INT_MAX) const {
     list<tree<T>> result;
     if (_tree == nullptr) {
       return result;
@@ -108,6 +99,9 @@ public:
     for (auto &child : _tree->children) {
       if (child->data == data) {
         result.push_back(tree<T>(child));
+        if (not --first_of) {
+          return result;
+        }
       }
     }
     return result;
@@ -116,7 +110,8 @@ public:
   template <typename AnotherT>
   list<tree<T>>
   find(const AnotherT &data,
-       const std::function<bool(const T &, const AnotherT &)> &cmp) const {
+       const std::function<bool(const T &, const AnotherT &)> &cmp,
+       int first_of = INT_MAX) const {
     list<tree<T>> result;
     if (_tree == nullptr) {
       return result;
@@ -125,18 +120,24 @@ public:
       if (cmp(child->data, data)) {
         result.push_back(tree<T>(child));
       }
+      if (not --first_of) {
+        return result;
+      }
     }
     return result;
   }
 
   list<tree<T>> find_all(const T &data) const {
     list<tree<T>> result;
+    // check if the tree is empty
     if (_tree == nullptr) {
       return result;
     }
+    // check if the data of the current node is the same as the data
     if (_tree->data == data) {
       result.push_back(tree<T>(_tree));
     }
+    // recursively find the descendant
     for (auto &child : _tree->children) {
       list<tree<T>> child_result = tree<T>(child).find_all(data);
       result.insert(result.end(), child_result.begin(), child_result.end());
@@ -153,9 +154,11 @@ public:
     if (_tree == nullptr) {
       return result;
     }
+    // check if the data of the current node conforms to the condition
     if (cmp(_tree->data, data)) {
       result.push_back(tree<T>(_tree));
     }
+    // recursively find the descendant
     for (auto &child : _tree->children) {
       list<tree<T>> child_result = tree<T>(child).find_all(data, cmp);
       result.insert(result.end(), child_result.begin(), child_result.end());

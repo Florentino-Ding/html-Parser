@@ -65,7 +65,8 @@ private:
     bool operator!=(const string &s) const;
 
     bool is_self_closing_tag() const;
-    bool has_attr(const string &attr_name) const;
+    bool has_attribute(const string &attr_name) const;
+    bool attribute_value(const string &attr_name, const string &value) const;
     bool new_line_tag() const;
     string begin_tag() const;
     string end_tag() const;
@@ -115,9 +116,9 @@ private:
       }
     }
 
-    bool has_attr(const string &attr_name) const {
+    bool has_attribute(const string &attr_name) const {
       if (is_tag) {
-        return data.tag->has_attr(attr_name);
+        return data.tag->has_attribute(attr_name);
       }
       return false;
     }

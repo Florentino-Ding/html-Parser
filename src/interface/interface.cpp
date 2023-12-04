@@ -46,20 +46,28 @@ char CLTinterface::_get_user_input() {
   arg1 = _get_input_arg(input);
   // check if the instruction is valid
   if (instruction.size() == 1) {
-    if (instruction == "l" or instruction == "t") {
+    switch (instruction[0]) {
+    case 'l':
+    case 't':
       if (arg1.empty()) {
         _xpath = xpath();
       } else {
         _xpath = xpath(arg1);
       }
-      return instruction[0];
-    } else if (instruction == "o") {
-      if (not(arg1.empty())) {
+      break;
+    case 'o':
+      if (!arg1.empty()) {
         _html_path = arg1;
         return 'o';
       }
-    } else {
-      return instruction[0];
+      break;
+    case 's':
+      if (arg1.empty()) {
+        // _selector = CssSelector();
+      } else {
+        // _selector = CssSelector(arg1);
+      }
+      break;
     }
   } else {
     if (instruction == "help" or instruction == "quit") {
@@ -71,6 +79,12 @@ char CLTinterface::_get_user_input() {
         _xpath = xpath(arg1);
       }
       return instruction[0];
+    } else if (instruction == "select") {
+      if (arg1.empty()) {
+        // _selector = CssSelector();
+      } else {
+        // _selector = CssSelector(arg1);
+      }
     } else if (instruction == "open") {
       if (not(arg1.empty())) {
         _html_path = arg1;
@@ -78,19 +92,20 @@ char CLTinterface::_get_user_input() {
       }
     }
   }
-  return -1;
+  return instruction[0];
 }
 
 void CLTinterface::_load_html() {
   if (_html_path.substr(0, 7) == "http://" ||
       _html_path.substr(0, 8) == "https://") {
     cout << "Reading from URL: " << _html_path << endl;
-    string command = "wget -O html/cache/downloaded.html " + _html_path;
+    string command =
+        "wget -O html_parser/cache/downloaded.html_parser " + _html_path;
     int result = system(command.c_str());
     if (result != 0) {
       throw std::runtime_error("Failed to download the HTML file.");
     } else {
-      _html_path = "html/cache/downloaded.html";
+      _html_path = "html_parser/cache/downloaded.html_parser";
       cout << "Downloaded to local path: cache/" << _html_path << endl;
     }
   }
@@ -122,7 +137,7 @@ void CLTinterface::_show_html(const bool text_only) {
 void CLTinterface::run() {
   char user_input;
   while (true) {
-    cout << "(html-parser) ";
+    cout << "(html_parser-parser) ";
     user_input = _get_user_input();
     switch (user_input) {
     case 'h':
@@ -140,7 +155,6 @@ void CLTinterface::run() {
       _load_html();
       break;
     default:
-    case -1:
       std::cout << "Invalid input. Please try again." << std::endl;
     }
   }

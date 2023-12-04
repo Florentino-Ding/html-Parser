@@ -5,8 +5,10 @@
 #ifndef HTML_PARSER_INTERFACE_H
 #define HTML_PARSER_INTERFACE_H
 
+#include "../css_selector/selector.h"
 #include "../xpath/xpath.h"
 #include <string>
+
 namespace interface {
 
 using custom::xpath;
