@@ -63,9 +63,8 @@ char CLTinterface::_get_user_input() {
       break;
     case 's':
       if (arg1.empty()) {
-        // _selector = CssSelector();
+        _xpath = xpath();
       } else {
-        // _selector = CssSelector(arg1);
       }
       break;
     }
@@ -81,9 +80,9 @@ char CLTinterface::_get_user_input() {
       return instruction[0];
     } else if (instruction == "select") {
       if (arg1.empty()) {
-        // _selector = CssSelector();
+        _xpath = xpath();
       } else {
-        // _selector = CssSelector(arg1);
+        // _xpath = xpath(CssSelector(arg1));
       }
     } else if (instruction == "open") {
       if (not(arg1.empty())) {

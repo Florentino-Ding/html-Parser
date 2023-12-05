@@ -5,10 +5,12 @@
 #ifndef HTMLPARSER_CSSSELECTOR_H
 #define HTMLPARSER_CSSSELECTOR_H
 
+#include "../xpath/xpath.h"
 #include <list>
 #include <queue>
 #include <string>
 
+using custom::xpath;
 using std::string, std::queue, std::list;
 
 class basic_selector {
@@ -62,6 +64,8 @@ public:
   CssSelector(const CssSelector &) {}
   CssSelector(const string &s) { _parse(s); }
   ~CssSelector() {}
+
+  explicit operator xpath() const;
 };
 
 #endif // HTMLPARSER_CSSSELECTOR_H

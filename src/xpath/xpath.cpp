@@ -164,12 +164,15 @@ void attribute_xpath_node::_parse(const string &node_str) {
   if (attr_val_str.find('=') != string::npos) {
     // skip the '@'
     start_pos = attr_val_str.find('@') + 1;
+    if (start_pos == attr_val_str.size() or attr_val_str[start_pos] == ' ') {
+      throw std::invalid_argument("invalid xpath");
+    }
     // get the attribute name
-    _name = attr_val_str.substr(attr_val_str.find_first_not_of(' ', start_pos),
-                                attr_val_str.find('='));
+    _name = attr_val_str.substr(start_pos, attr_val_str.find('=') - start_pos);
     // reset the start_pos and end_pos
-    start_pos = attr_val_str.find_first_not_of(' ', attr_val_str.find('=') + 1);
-    end_pos = attr_val_str.find_first_of(' ', start_pos);
+    start_pos =
+        attr_val_str.find_first_not_of(" '\"", attr_val_str.find('=') + 1);
+    end_pos = attr_val_str.find_first_of(" '\"", start_pos);
     // get the attribute value
     _value = attr_val_str.substr(start_pos, end_pos - start_pos);
   }
@@ -190,6 +193,7 @@ void attribute_xpath_node::_parse(const string &node_str) {
 }
 
 void xpath::_parse(const string &xpath_str) {
+  // TODO: add multiple xpath support
   // check if the xpath_str is empty
   if (xpath_str.empty() or xpath_str.find_first_not_of(' ') == string::npos) {
     throw std::invalid_argument("empty xpath");

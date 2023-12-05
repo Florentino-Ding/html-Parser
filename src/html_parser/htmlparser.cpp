@@ -476,9 +476,9 @@ string html::show(xpath &path, const bool text_only) const {
       // if node->has_value() is true, then the attribute should have a value
       if (node->has_value()) {
         std::function<bool(const _element &, const attribute_xpath_node &)>
-            cmp = [node](const _element &e, const attribute_xpath_node &s) {
-              return e.data.tag->attribute_value(node->attribute_name(),
-                                                 node->attribute_value());
+            cmp = [](const _element &e, const attribute_xpath_node &node) {
+              return e.attribute_value(node.attribute_name(),
+                                       node.attribute_value());
             };
         elements = _html.find_all(*node, cmp);
       }
@@ -593,8 +593,14 @@ string html::show(xpath &path, const bool text_only) const {
   // convert each element to string and add them to result
   for (auto &e : elements) {
     result += string(e);
-    result += '\n';
+    result += "\n\n";
   }
+  // remove the last two '\n'
+  if (not result.empty()) {
+    result.erase(result.end() - 1, result.end());
+  }
+  // output the number of elements found
+  result += "\nFound " + std::to_string(elements.size()) + " elements";
 
   return result;
 }

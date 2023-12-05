@@ -122,6 +122,12 @@ private:
       }
       return false;
     }
+    bool attribute_value(const string &attr_name, const string &value) const {
+      if (is_tag) {
+        return data.tag->attribute_value(attr_name, value);
+      }
+      return false;
+    }
   };
 
   void _clear_comment();

@@ -23,15 +23,20 @@ private:
     list<shared_ptr<_TreeNode>> children;
     shared_ptr<_TreeNode> parent;
 
-    _TreeNode() : parent(nullptr), data() {}
+    _TreeNode() = default;
 
     _TreeNode(const T &d, _TreeNode *p = nullptr) : data(d), parent(p) {}
 
-    _TreeNode(const T &d, shared_ptr<_TreeNode> p) : data(d), parent(p) {}
+    // _TreeNode(const T &d, shared_ptr<_TreeNode> p = nullptr)
+    //     : data(d), parent(p) {}
 
     _TreeNode(const _TreeNode &another_node) : data(another_node.data) {
+      // copy constructor
+      if (another_node.parent != nullptr) {
+        parent = another_node.parent;
+      }
       for (auto &child : another_node.children) {
-        children.push_back(std::make_shared<_TreeNode>(*child));
+        children.push_back(child);
       }
     }
   };
@@ -54,6 +59,7 @@ public:
   }
 
   tree(const tree &another_tree) {
+    // copy constructor
     _tree = std::make_shared<_TreeNode>(*another_tree._tree);
     _back = _tree;
     while (_back != nullptr and _back->children.size() > 0) {
@@ -84,9 +90,6 @@ public:
     }
     if (_tree->parent == nullptr) {
       throw std::runtime_error("Tree has no parent");
-    }
-    if (_back == _tree) {
-      throw std::runtime_error("Root has no parent");
     }
     return tree<T>(_tree->parent);
   }
