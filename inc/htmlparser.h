@@ -16,7 +16,10 @@
 
 namespace custom {
 class xpath;
-}
+class basic_xpath_constraint;
+class element_xpath_constraint;
+class attribute_xpath_constraint;
+} // namespace custom
 
 using custom::tree, custom::xpath;
 using std::fstream, std::string, std::pair, std::list, std::stack,
@@ -31,7 +34,11 @@ private:
   string _clear_content;
   tree<_element> _html;
 
-  friend class custom::tree<_element>;
+  friend class tree<_element>;
+  friend class xpath;
+  friend class custom::basic_xpath_constraint;
+  friend class custom::element_xpath_constraint;
+  friend class custom::attribute_xpath_constraint;
 
   class _tag {
   private:
@@ -64,9 +71,10 @@ private:
     bool operator!=(const _tag &s) const { return !(*this == s); }
     bool operator!=(const string &s) const;
 
+    string name() const { return _name; }
     bool is_self_closing_tag() const;
     bool has_attribute(const string &attr_name) const;
-    bool attribute_value(const string &attr_name, const string &value) const;
+    string attribute(const string &attr_name) const;
     bool new_line_tag() const;
     string begin_tag() const;
     string end_tag() const;
@@ -123,8 +131,8 @@ private:
       return false;
     }
     bool attribute_value(const string &attr_name, const string &value) const {
-      if (is_tag) {
-        return data.tag->attribute_value(attr_name, value);
+      if (is_tag and has_attribute(attr_name)) {
+        return data.tag->attribute(attr_name) == value;
       }
       return false;
     }

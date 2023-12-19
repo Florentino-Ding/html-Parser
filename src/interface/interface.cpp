@@ -65,6 +65,7 @@ char CLTinterface::_get_user_input() {
       if (arg1.empty()) {
         _xpath = xpath();
       } else {
+        _xpath = CssSelector(arg1);
       }
       break;
     }
@@ -82,7 +83,7 @@ char CLTinterface::_get_user_input() {
       if (arg1.empty()) {
         _xpath = xpath();
       } else {
-        // _xpath = xpath(CssSelector(arg1));
+        _xpath = CssSelector(arg1);
       }
     } else if (instruction == "open") {
       if (not(arg1.empty())) {
@@ -144,11 +145,19 @@ void CLTinterface::run() {
       break;
     case 'q':
       return;
+    // receive a string of xpath and list all the nodes that match the xpath
     case 'l':
       _show_html();
       break;
+    // receive a string of xpath and list all the nodes that match the
+    // xpath(text only)
     case 't':
       _show_html(true);
+      break;
+    // receive a string of CssSelector and list all the nodes that match the
+    // selector
+    case 's':
+      _show_html();
       break;
     case 'o':
       _load_html();

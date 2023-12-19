@@ -6,6 +6,8 @@
 #define HTML_PARSER_XPATH_PARSER_H
 
 #include "../htmlparser.h"
+#include <functional>
+#include <initializer_list>
 #include <istream>
 #include <memory>
 #include <queue>
@@ -15,86 +17,112 @@
 #define AXIS_DESCENDANT 1
 #define AXIS_SELF 2
 #define AXIS_PARENT 3
-#define AXIS_ANCESTOR 4
+#define AXIS_NEARBY_SIBLING 4
 #define AXIS_SIBLING 5
+#define AXIS_ALL 6
+
+#define LOGIC_OR 0
+#define LOGIC_AND 1
 
 namespace custom {
 
-using std::string, std::queue, std::shared_ptr;
+using std::string, std::queue, std::shared_ptr, std::function;
 
-class basic_xpath_node {
-private:
-  struct predicates {
-    list<int> positions;
-    string attribute;
-    string value;
+class xpath;
 
-    predicates() = default;
-    predicates(const predicates &p)
-        : positions(p.positions), attribute(p.attribute), value(p.value) {}
-    predicates(const string &s);
-    ~predicates() = default;
-  };
-
-  predicates _predicates;
-
+class basic_xpath_constraint {
 protected:
   string _name;
-  char _axis;
 
   virtual void _parse(const string &) = 0;
-  void set_predicates(const string &s) { _predicates = predicates(s); }
 
 public:
-  basic_xpath_node() = default;
-  basic_xpath_node(const string &name) : _name(name) {}
-  basic_xpath_node(const string &name, const char axis,
-                   const string &predicates = "")
-      : _name(name), _axis(axis), _predicates(predicates) {}
-  virtual ~basic_xpath_node() = default;
+  basic_xpath_constraint() = default;
+  basic_xpath_constraint(const string &name) : _name(name) {}
+  virtual ~basic_xpath_constraint() = default;
 
-  char axis() const { return _axis; }
+  virtual bool check(const html::_element &) const = 0;
 };
 
-class element_xpath_node : public basic_xpath_node {
+class element_xpath_constraint : public basic_xpath_constraint {
 private:
   void _parse(const string &) override;
 
 public:
-  element_xpath_node() = default;
-  element_xpath_node(const string &s) : basic_xpath_node() { _parse(s); }
-  element_xpath_node(const string &name, const char axis,
-                     const string &predicates = "")
-      : basic_xpath_node(name, axis, predicates) {}
-  ~element_xpath_node() override {}
+  element_xpath_constraint() = default;
+  element_xpath_constraint(const string &s) : basic_xpath_constraint() {
+    _parse(s);
+  }
+  ~element_xpath_constraint() override {}
 
   string element_name() const { return _name; }
+  bool check(const html::_element &e) const override {
+    if (not e.is_tag) {
+      return false;
+    }
+    return e.data.tag->name() == _name;
+  }
 };
 
-class attribute_xpath_node : public basic_xpath_node {
+class attribute_xpath_constraint : public basic_xpath_constraint {
 private:
   string _value;
 
   void _parse(const string &) override;
 
 public:
-  attribute_xpath_node() = default;
-  attribute_xpath_node(const string &s) : basic_xpath_node(s) { _parse(s); }
-  attribute_xpath_node(const string &attr, const string &value, const char axis,
-                       const string &predicates = "")
-      : basic_xpath_node(attr, axis, predicates), _value(value) {}
-  ~attribute_xpath_node() override {}
+  attribute_xpath_constraint() = default;
+  attribute_xpath_constraint(const string &s) : basic_xpath_constraint(s) {
+    _parse(s);
+  }
+  attribute_xpath_constraint(const string &attr, const string &value)
+      : basic_xpath_constraint(attr), _value(value) {}
+  ~attribute_xpath_constraint() override {}
 
-  string value() const { return _value; }
   string attribute_name() const { return _name; }
   string attribute_value() const { return _value; }
   bool has_value() const { return !_value.empty(); }
+  bool check(const html::_element &e) const override {
+    if (not e.is_tag) {
+      return false;
+    }
+    return e.data.tag->has_attribute(_name) and
+           (not has_value() or e.data.tag->attribute(_name) == _value);
+  }
 };
 
 class xpath {
-private:
-  queue<shared_ptr<basic_xpath_node>> _xpath_queue;
+public:
+  struct xpath_node {
+    char _axis;
+    char _logic;
+    list<shared_ptr<basic_xpath_constraint>> constraints;
 
+    void _parse(const string &node_str);
+
+    xpath_node() : _axis(AXIS_SELF), _logic(LOGIC_AND) {}
+    xpath_node(const xpath_node &x)
+        : constraints(x.constraints), _axis(x._axis), _logic(x._logic) {}
+    xpath_node(char axis) {
+      if (axis != AXIS_PARENT and axis != AXIS_SELF and axis != AXIS_ALL) {
+        throw std::invalid_argument("invalid axis");
+      }
+      _axis = axis;
+      _logic = LOGIC_AND;
+    }
+    xpath_node(const string &node_str) { _parse(node_str); }
+
+    char axis() const { return _axis; }
+    function<bool(html::_element)> constraint() const;
+    void add_constraint(const shared_ptr<basic_xpath_constraint> &c) {
+      constraints.push_back(c);
+    }
+  };
+
+protected:
+  queue<xpath_node> _xpath_queue;
+
+private:
   void _parse(const string &);
 
 public:
@@ -110,8 +138,10 @@ public:
   }
 
   bool empty() const { return _xpath_queue.empty(); }
-  char axis() const { return _xpath_queue.front()->axis(); }
-  shared_ptr<basic_xpath_node> front() const { return _xpath_queue.front(); }
+  char axis() const { return _xpath_queue.front().axis(); }
+  function<bool(html::_element)> constraint() const {
+    return _xpath_queue.front().constraint();
+  }
   void next() { _xpath_queue.pop(); }
 };
 }; // namespace custom

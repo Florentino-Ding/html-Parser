@@ -7,8 +7,8 @@
 #include <stdexcept>
 #include <string>
 
-using custom::xpath, custom::basic_xpath_node, custom::element_xpath_node,
-    custom::attribute_xpath_node;
+using custom::xpath, custom::basic_xpath_constraint,
+    custom::element_xpath_constraint, custom::attribute_xpath_constraint;
 using std::string, std::shared_ptr, std::dynamic_pointer_cast, std::function,
     std::list, std::stack;
 
@@ -21,7 +21,8 @@ template <> inline tree<html::_element>::operator string() const {
 
   string result;
   bool parent_new_line_tag = new_line_tag;
-  new_line_tag = _tree->data.data.tag->new_line_tag();
+  if (_tree->parent != nullptr)
+    new_line_tag = _tree->data.data.tag->new_line_tag();
   if (_tree == nullptr) {
     return result;
   }
@@ -66,7 +67,7 @@ template <> inline tree<html::_element>::operator string() const {
       }
     }
     if (not(_tree->children.empty())) {
-      throw std::runtime_error("invalid html_parser tree");
+      return "";
     }
     result = string(_tree->data.data.content_idx.first,
                     _tree->data.data.content_idx.second);
@@ -187,15 +188,11 @@ bool html::_tag::has_attribute(const string &attr_name) const {
   return _attributes.find(attr_name) != _attributes.end();
 }
 
-bool html::_tag::attribute_value(const string &attr_name,
-                                 const string &value) const {
-  /*
-   * Check if both the attribute name and the value are correct
-   * @param attr_name: the name of the attribute
-   * @param value: the value to check
-   * @return: true if the attribute has the value
-   */
-  return has_attribute(attr_name) and _attributes.at(attr_name) == value;
+string html::_tag::attribute(const string &attr_name) const {
+  if (not has_attribute(attr_name)) {
+    throw std::runtime_error("Attribute not found");
+  }
+  return _attributes.at(attr_name);
 }
 
 bool html::_tag::new_line_tag() const {
@@ -458,133 +455,42 @@ string html::show(xpath &path, const bool text_only) const {
   // if the xpath is absolute, then the root is the html tag
   if (path.axis() == AXIS_CHILD) {
     elements.push_back(_html);
+  } else if (path.axis() == AXIS_ALL) {
+    elements = _html.find_all(path.constraint());
+    path.next();
   }
   // if the xpath is relative, then the root should be found by the xpath
   else {
-    // TODO: add basic predicate support
-    // if the first node is an element node
-    if (std::dynamic_pointer_cast<element_xpath_node>(path.front())) {
-      std::shared_ptr<element_xpath_node> node =
-          std::dynamic_pointer_cast<element_xpath_node>(path.front());
-      elements = _html.find_all(_tag("<" + node->element_name() + ">"));
-    }
-    // else the first node is an attribute node
-    else {
-      std::shared_ptr<attribute_xpath_node> node =
-          std::dynamic_pointer_cast<attribute_xpath_node>(path.front());
-      // check if attribute has a value
-      // if node->has_value() is true, then the attribute should have a value
-      if (node->has_value()) {
-        std::function<bool(const _element &, const attribute_xpath_node &)>
-            cmp = [](const _element &e, const attribute_xpath_node &node) {
-              return e.attribute_value(node.attribute_name(),
-                                       node.attribute_value());
-            };
-        elements = _html.find_all(*node, cmp);
-      }
-      // else the attribute should not have a value
-      else {
-        std::function<bool(const _element &, const string &)> cmp =
-            [](const _element &e, const string &s) {
-              return e.has_attribute(s);
-            };
-        elements = _html.find_all(node->attribute_name(), cmp);
-      }
-    }
+    elements = _html.find_all(path.constraint());
     path.next();
   }
   // find all the elements that match the xpath
-  while (not path.empty()) {
+  while (not elements.empty() and not path.empty()) {
     list<tree<html::_element>> new_elements;
     char axis = path.axis();
-    // if the node is an element node
-    // TODO: add predicate support
-    if (dynamic_pointer_cast<element_xpath_node>(path.front())) {
-      shared_ptr<element_xpath_node> node =
-          dynamic_pointer_cast<element_xpath_node>(path.front());
-      for (auto &e : elements) {
-        list<tree<html::_element>> t;
-        switch (axis) {
-        case AXIS_SELF:
-          new_elements.push_back(e);
-          break;
-        case AXIS_DESCENDANT:
-          t = e.find_all(_tag("<" + node->element_name() + ">"));
-          break;
-        case AXIS_CHILD:
-          t = e.find(_tag("<" + node->element_name() + ">"));
-          break;
-        case AXIS_PARENT:
-          if (node->element_name() != "") {
-            throw std::runtime_error("Invalid xpath");
-          }
-          new_elements.push_back(e.parent());
-        }
-        if (not t.empty()) {
-          new_elements.insert(new_elements.end(), t.begin(), t.end());
-        }
+    for (auto &e : elements) {
+      list<tree<html::_element>> t;
+      switch (axis) {
+      case AXIS_SELF:
+        t = {e};
+        break;
+      case AXIS_DESCENDANT:
+        t = e.find_all(path.constraint());
+        break;
+      case AXIS_CHILD:
+        t = e.find(path.constraint());
+        break;
+      case AXIS_PARENT:
+        t = {e.parent()};
+      case AXIS_SIBLING:
+        t = e.find_sibling(path.constraint());
+        break;
+      case AXIS_ALL:
+        t = e.all();
+        break;
       }
-    }
-    // else the node is an attribute node
-    else {
-      shared_ptr<attribute_xpath_node> node =
-          dynamic_pointer_cast<attribute_xpath_node>(path.front());
-      if (node == nullptr) {
-        throw std::runtime_error("Invalid xpath");
-      }
-      // check if attribute has a value
-      // if node->has_value() is true, then the attribute should have a value
-      if (node->has_value()) {
-        std::function<bool(const _element &, const attribute_xpath_node &)>
-            cmp = [node](const _element &e, const attribute_xpath_node &s) {
-              return e.data.tag->attribute_value(node->attribute_name(),
-                                                 node->attribute_value());
-            };
-        for (auto &e : elements) {
-          list<tree<html::_element>> t;
-          switch (axis) {
-          case AXIS_SELF:
-            new_elements.push_back(e);
-            break;
-          case AXIS_DESCENDANT:
-            t = e.find_all(*node, cmp);
-            break;
-          case AXIS_CHILD:
-            t = e.find(*node, cmp);
-            break;
-          case AXIS_PARENT:
-            throw std::runtime_error("Invalid xpath");
-          }
-          if (not t.empty()) {
-            new_elements.insert(new_elements.end(), t.begin(), t.end());
-          }
-        }
-      }
-      // else the attribute should not have a value
-      else {
-        std::function<bool(const _element &, const string &)> cmp =
-            [](const _element &e, const string &s) {
-              return e.has_attribute(s);
-            };
-        for (auto &e : elements) {
-          list<tree<html::_element>> t;
-          switch (axis) {
-          case AXIS_SELF:
-            new_elements.push_back(e);
-            break;
-          case AXIS_DESCENDANT:
-            t = e.find_all(node->attribute_name(), cmp);
-            break;
-          case AXIS_CHILD:
-            t = e.find(node->attribute_name(), cmp);
-            break;
-          case AXIS_PARENT:
-            throw std::runtime_error("Invalid xpath");
-          }
-          if (not t.empty()) {
-            new_elements.insert(new_elements.end(), t.begin(), t.end());
-          }
-        }
+      if (not t.empty()) {
+        new_elements.insert(new_elements.end(), t.begin(), t.end());
       }
     }
     elements = new_elements;
