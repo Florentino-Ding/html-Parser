@@ -1,5 +1,6 @@
 html/
 examples/
+build/
 
 cmake*
 CMake*
